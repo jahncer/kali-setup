@@ -1,0 +1,61 @@
+---
+- name: Copy GitHub release downloader helper
+  ansible.builtin.copy:
+    src: gh_release_download.py
+    dest: "{{ github_release_helper_path }}"
+    owner: root
+    group: root
+    mode: "0755"
+  become: true
+
+- name: Create GitHub release tool destination directories
+  ansible.builtin.file:
+    path: "{{ item.dest }}"
+    state: directory
+    owner: "{{ kali_user }}"
+    group: "{{ kali_user }}"
+    mode: "0755"
+  loop: "{{ github_release_tools }}"
+  become: true
+
+- name: Download GitHub release tools
+  ansible.builtin.command: >
+    {{ github_release_helper_path }} {{ item.repo }} {{ item.regex }} {{ item.dest }}
+  loop: "{{ github_release_tools }}"
+  become: true
+  register: github_release_results
+  changed_when: "'Installed' in github_release_results.stdout"
+  failed_when: false
+
+- name: Summarize GitHub release download failures
+  ansible.builtin.debug:
+    msg: "GitHub release tool '{{ item.item.name }}' failed. Check repo/regex/rate limit/internet access."
+  loop: "{{ github_release_results.results | default([]) }}"
+  when: item.rc | default(0) != 0
+
+- name: Ensure release tool directories are owned by Kali user
+  ansible.builtin.file:
+    path: "{{ item.dest }}"
+    owner: "{{ kali_user }}"
+    group: "{{ kali_user }}"
+    recurse: true
+  loop: "{{ github_release_tools }}"
+  become: true
+
+- name: Make common downloaded Linux helpers executable
+  ansible.builtin.shell: |
+    set -euo pipefail
+    for d in /opt/chisel /opt/ligolo-ng /opt/peas /opt/pspy /opt/kerbrute; do
+      [ -d "$d" ] || continue
+      find "$d" -type f \
+        ! -name '*.exe' \
+        ! -name '*.ps1' \
+        ! -name '*.zip' \
+        ! -name '*.gz' \
+        ! -name '*.tar' \
+        -exec chmod +x {} \;
+    done
+  args:
+    executable: /bin/bash
+  become: true
+  changed_when: false

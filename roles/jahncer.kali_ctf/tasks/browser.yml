@@ -1,0 +1,32 @@
+---
+- name: Ensure Firefox policy directory exists
+  ansible.builtin.file:
+    path: "{{ firefox_policy_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  become: true
+  failed_when: false
+
+- name: Install Firefox policies
+  ansible.builtin.template:
+    src: policies.json.j2
+    dest: "{{ firefox_policy_dir }}/policies.json"
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  failed_when: false
+
+- name: Create browser workspace directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ kali_user }}"
+    group: "{{ kali_user }}"
+    mode: "0755"
+  loop:
+    - "{{ kali_home }}/.config/burp"
+    - "{{ kali_home }}/browser-notes"
+  become: true

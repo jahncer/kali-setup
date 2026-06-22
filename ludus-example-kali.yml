@@ -1,0 +1,20 @@
+# Merge the roles/role_vars block into your Kali VM entry in your Ludus range config.
+# Example only; adjust template, VLAN, RAM, CPU, and IP as needed.
+
+- vm_name: "{{ range_id }}-kali"
+  hostname: "{{ range_id }}-kali"
+  template: kali-x64-desktop-template
+  vlan: 99
+  ip_last_octet: 1
+  ram_gb: 8
+  cpus: 4
+  linux: true
+  testing:
+    snapshot: false
+    block_internet: false
+  roles:
+    - jahncer.kali_ctf
+  role_vars:
+    kali_user: kali
+    kali_home: /home/kali
+    kali_tools_dir: /opt/tools

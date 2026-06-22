@@ -1,0 +1,42 @@
+---
+- name: Clone tmux-logging plugin
+  ansible.builtin.git:
+    repo: https://github.com/tmux-plugins/tmux-logging.git
+    dest: "{{ tmux_logging_dir }}"
+    update: true
+  become: true
+
+- name: Ensure tmux-logging ownership
+  ansible.builtin.file:
+    path: "{{ tmux_logging_dir }}"
+    owner: "{{ kali_user }}"
+    group: "{{ kali_user }}"
+    recurse: true
+  become: true
+
+- name: Install IppSec-style tmux config
+  ansible.builtin.copy:
+    dest: "{{ kali_home }}/.tmux.conf"
+    owner: "{{ kali_user }}"
+    group: "{{ kali_user }}"
+    mode: "0644"
+    content: |
+      # Jahncer/IppSec-style tmux config managed by Ansible
+      set -g prefix C-a
+      bind C-a send-prefix
+      unbind C-b
+
+      set -g history-limit 100000
+      set -g allow-rename off
+      set -g mouse on
+      set-window-option -g mode-keys vi
+
+      bind-key j command-prompt -p "Join pane from:" "join-pane -s :'%%'"
+      bind-key s command-prompt -p "Send pane to:" "join-pane -t :'%%'"
+
+      bind-key | split-window -h
+      bind-key - split-window -v
+      bind-key r source-file ~/.tmux.conf \; display-message "tmux config reloaded"
+
+      run-shell {{ tmux_logging_dir }}/logging.tmux
+  become: true

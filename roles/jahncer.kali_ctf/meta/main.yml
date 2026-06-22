@@ -1,0 +1,17 @@
+---
+galaxy_info:
+  role_name: kali_ctf
+  namespace: jahncer
+  author: jahncer
+  description: CTF-ready Kali baseline for Ludus attacker VMs
+  license: MIT
+  min_ansible_version: "2.12"
+  platforms:
+    - name: Debian
+      versions:
+        - all
+    - name: Kali
+      versions:
+        - all
+
+dependencies: []

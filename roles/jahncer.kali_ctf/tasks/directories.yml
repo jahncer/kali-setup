@@ -1,0 +1,27 @@
+---
+- name: Ensure Kali user exists
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ kali_user }}"
+
+- name: Create common tool directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ kali_user }}"
+    group: "{{ kali_user }}"
+    mode: "0755"
+  loop:
+    - "{{ kali_tools_dir }}"
+    - /opt/chisel
+    - /opt/ligolo-ng
+    - /opt/peas
+    - /opt/pspy
+    - /opt/kerbrute
+    - "{{ kali_home }}/ctf"
+    - "{{ kali_home }}/ctf/tools"
+    - "{{ kali_home }}/ctf/loot"
+    - "{{ kali_home }}/ctf/scans"
+    - "{{ kali_home }}/bloodhound"
+    - "{{ kali_home }}/bloodhound/collectors"
+  become: true

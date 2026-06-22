@@ -1,0 +1,19 @@
+{
+  "policies": {
+    "DisableAppUpdate": true,
+    "DisableFirefoxStudies": true,
+    "DisablePocket": true,
+    "DisableTelemetry": true,
+    "DontCheckDefaultBrowser": true,
+    "Homepage": {
+      "URL": "{{ firefox_homepage }}",
+      "Locked": false,
+      "StartPage": "homepage"
+    },
+    "ExtensionSettings": {
+      "*": {
+        "installation_mode": "allowed"
+      }
+    }
+  }
+}

@@ -1,0 +1,35 @@
+---
+- name: Ensure baseline directories exist
+  ansible.builtin.include_tasks: directories.yml
+
+- name: Install package baseline
+  ansible.builtin.include_tasks: packages.yml
+  when: kali_install_packages | bool
+
+- name: Install pipx tools
+  ansible.builtin.include_tasks: pipx.yml
+  when: kali_install_pipx_tools | bool
+
+- name: Install GitHub release tools
+  ansible.builtin.include_tasks: github-releases.yml
+  when: kali_install_github_releases | bool
+
+- name: Install latest ProjectDiscovery tools
+  ansible.builtin.include_tasks: projectdiscovery.yml
+  when: kali_install_projectdiscovery | bool
+
+- name: Install BloodHound CE using Docker
+  ansible.builtin.include_tasks: bloodhound-docker.yml
+  when: kali_install_bloodhound_docker | bool
+
+- name: Configure tmux
+  ansible.builtin.include_tasks: tmux.yml
+  when: kali_install_tmux_config | bool
+
+- name: Configure browser policy
+  ansible.builtin.include_tasks: browser.yml
+  when: kali_install_browser_policy | bool
+
+- name: Configure shell helpers
+  ansible.builtin.include_tasks: shell.yml
+  when: kali_install_shell_helpers | bool

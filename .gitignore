@@ -1,0 +1,19 @@
+# Local secrets / generated files
+*.retry
+.env
+.env.*
+*.log
+.initial-admin-password.txt
+initial-admin-password.txt
+
+# Python
+__pycache__/
+*.pyc
+
+# Ansible
+.ansible/
+
+# Editor
+.vscode/
+.idea/
+.DS_Store

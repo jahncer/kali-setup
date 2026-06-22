@@ -1,0 +1,31 @@
+---
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: "{{ kali_apt_cache_valid_time }}"
+  become: true
+  when: kali_apt_update_cache | bool
+
+- name: Install core Kali packages
+  ansible.builtin.apt:
+    name: "{{ kali_core_packages }}"
+    state: present
+  become: true
+
+- name: Install optional Kali packages one by one
+  ansible.builtin.apt:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ kali_optional_packages }}"
+  become: true
+  register: optional_package_results
+  failed_when: false
+  when: kali_install_optional_packages | bool
+
+- name: Summarize optional packages that failed to install
+  ansible.builtin.debug:
+    msg: "Optional package '{{ item.item }}' was not installed. It may not exist in this Kali release or the apt repo may be unavailable."
+  loop: "{{ optional_package_results.results | default([]) }}"
+  when:
+    - kali_install_optional_packages | bool
+    - item.failed | default(false)

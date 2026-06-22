@@ -1,0 +1,240 @@
+---
+# Primary desktop user in the Kali VM.
+kali_user: kali
+kali_home: "/home/{{ kali_user }}"
+kali_tools_dir: /opt/tools
+kali_bin_dir: /usr/local/bin
+
+# Set to false for a minimal package-only run.
+kali_install_packages: true
+kali_install_optional_packages: true
+kali_install_pipx_tools: true
+kali_install_github_releases: true
+kali_install_projectdiscovery: true
+kali_install_bloodhound_docker: true
+kali_install_tmux_config: true
+kali_install_browser_policy: true
+kali_install_shell_helpers: true
+
+# Keep apt conservative and reproducible. Use present for normal packages.
+kali_apt_update_cache: true
+kali_apt_cache_valid_time: 3600
+
+# Core packages should generally exist on Kali/Debian and should fail if missing.
+kali_core_packages:
+  - ca-certificates
+  - apt-transport-https
+  - gnupg
+  - lsb-release
+  - sudo
+  - tmux
+  - zsh
+  - git
+  - curl
+  - wget
+  - unzip
+  - zip
+  - tar
+  - gzip
+  - jq
+  - fzf
+  - ripgrep
+  - tree
+  - xclip
+  - python3
+  - python3-pip
+  - python3-venv
+  - python3-dev
+  - pipx
+  - build-essential
+  - make
+  - gcc
+  - gdb
+  - nmap
+  - netcat-traditional
+  - socat
+  - tcpdump
+  - rsync
+  - openssh-client
+  - docker.io
+  - docker-compose-plugin
+
+# Optional packages are installed one-by-one. Missing packages are reported but won't stop the role.
+# This makes the role survive Kali package renames across releases.
+kali_optional_packages:
+  # quality of life
+  - yq
+  - fd-find
+  - bat
+  - flameshot
+  - wireshark
+  - remmina
+  - freerdp2-x11
+  - rlwrap
+  - vim
+  - neovim
+  - terminator
+
+  # web / recon
+  - ffuf
+  - feroxbuster
+  - gobuster
+  - dirsearch
+  - seclists
+  - wpscan
+  - nikto
+  - sqlmap
+  - wafw00f
+  - whatweb
+  - burpsuite
+  - zaproxy
+  - chromium
+  - firefox-esr
+
+  # network enum
+  - masscan
+  - rustscan
+  - enum4linux-ng
+  - smbclient
+  - nbtscan
+  - snmp
+  - onesixtyone
+  - ldap-utils
+  - dnsutils
+  - whois
+
+  # AD / Windows
+  - netexec
+  - evil-winrm
+  - impacket-scripts
+  - responder
+  - mitm6
+  - bloodhound-ce-python
+  - sharphound
+  - bloodyad
+  - ldapdomaindump
+  - certipy-ad
+  - powershell
+  - mingw-w64
+  - wine
+
+  # privesc / passwords / cracking
+  - hashcat
+  - john
+  - wordlists
+  - hydra
+  - medusa
+  - hashid
+  - cewl
+
+  # pwn / reversing / forensics / stego
+  - checksec
+  - ropper
+  - ropgadget
+  - radare2
+  - ghidra
+  - jadx
+  - apktool
+  - binwalk
+  - foremost
+  - exiftool
+  - steghide
+  - zsteg
+  - foremost
+  - volatility3
+  - sleuthkit
+  - autopsy
+
+# Tools installed with pipx. These are run as kali_user.
+pipx_tools:
+  - name: updog
+    source: updog
+  - name: pyftpdlib
+    source: pyftpdlib
+  - name: pwntools
+    source: pwntools
+  - name: impacket
+    source: git+https://github.com/fortra/impacket.git
+
+# GitHub release helper config.
+github_release_helper_path: /tmp/gh_release_download.py
+github_release_download_timeout: 120
+github_release_tools:
+  - name: chisel-linux
+    repo: jpillora/chisel
+    regex: 'linux_amd64.*\.gz$'
+    dest: /opt/chisel
+    executable_glob: '*chisel*'
+
+  - name: chisel-windows
+    repo: jpillora/chisel
+    regex: 'windows_amd64.*\.gz$'
+    dest: /opt/chisel
+
+  - name: ligolo-ng-linux
+    repo: nicocha30/ligolo-ng
+    regex: 'linux_amd64.*\.tar\.gz$'
+    dest: /opt/ligolo-ng
+    executable_glob: '*'
+
+  - name: ligolo-ng-windows
+    repo: nicocha30/ligolo-ng
+    regex: 'windows_amd64.*\.zip$'
+    dest: /opt/ligolo-ng
+
+  - name: linpeas
+    repo: peass-ng/PEASS-ng
+    regex: 'linpeas\.sh$'
+    dest: /opt/peas
+    executable_glob: 'linpeas.sh'
+
+  - name: winpeas
+    repo: peass-ng/PEASS-ng
+    regex: 'winPEASx64\.exe$'
+    dest: /opt/peas
+
+  - name: pspy64
+    repo: DominicBreuker/pspy
+    regex: 'pspy64$'
+    dest: /opt/pspy
+    executable_glob: 'pspy64'
+
+  - name: kerbrute-linux
+    repo: ropnop/kerbrute
+    regex: 'linux_amd64$'
+    dest: /opt/kerbrute
+    executable_glob: '*kerbrute*'
+
+# ProjectDiscovery toolchain.
+projectdiscovery_bin_dir: /usr/local/bin
+projectdiscovery_tools:
+  - nuclei
+  - httpx
+  - subfinder
+  - dnsx
+  - naabu
+  - katana
+  - interactsh-client
+  - mapcidr
+  - tlsx
+  - uncover
+projectdiscovery_update_templates: true
+
+# BloodHound CE Docker/BH-CLI config.
+bloodhound_dir: /opt/bloodhound-ce
+bloodhound_cli_url: https://github.com/SpecterOps/bloodhound-cli/releases/latest/download/bloodhound-cli-linux-amd64.tar.gz
+bloodhound_cli_path: /usr/local/bin/bloodhound-cli
+bloodhound_password_file: "{{ kali_home }}/.config/bloodhound/initial-admin-password.txt"
+bloodhound_install_guard: "{{ bloodhound_dir }}/.bloodhound-ce-installed"
+bloodhound_compose_start_after_install: false
+
+# Browser policy. This is intentionally light and safe.
+firefox_policy_dir: /usr/lib/firefox-esr/distribution
+firefox_homepage: about:blank
+firefox_extension_ids:
+  - darkreader
+  - foxyproxy-standard
+  - wappalyzer
+
+# tmux config.
+tmux_logging_dir: /opt/tmux-logging
