@@ -3,7 +3,7 @@
   ansible.builtin.apt:
     name:
       - docker.io
-      - docker-compose-plugin
+      - docker-compose
       - curl
       - ca-certificates
       - jq
