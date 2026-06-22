@@ -14,6 +14,18 @@
   become: true
   when: rockyou_archive.stat.exists
 
+- name: Verify the extracted RockYou wordlist
+  ansible.builtin.stat:
+    path: /usr/share/wordlists/rockyou.txt
+  register: rockyou_wordlist
+
+- name: Remove the compressed RockYou archive after extraction
+  ansible.builtin.file:
+    path: /usr/share/wordlists/rockyou.txt.gz
+    state: absent
+  become: true
+  when: rockyou_wordlist.stat.exists
+
 - name: Check common wordlist collections
   ansible.builtin.stat:
     path: "{{ item.src }}"
