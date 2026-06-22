@@ -1,6 +1,6 @@
 ---
 collections:
   - name: community.general
-    version: 13.1.0
-  - name: community.docker
-    version: 5.2.1
+    # Match Ludus' pinned collection. Newer releases moved proxmox_kvm and can
+    # break Ludus range deployment before this role is reached.
+    version: 10.3.0

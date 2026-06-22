@@ -57,6 +57,10 @@ cd kali-setup
 ./scripts/install-ludus-role.sh
 ```
 
+The installer intentionally does not modify Ludus's globally managed Ansible
+collections. In particular, Ludus pins `community.general` for compatibility
+with its Proxmox deployment modules.
+
 Add the role to your Kali VM in the Ludus range YAML:
 
 ```yaml

@@ -9,9 +9,9 @@ if ! command -v ludus >/dev/null 2>&1; then
   exit 1
 fi
 
-ludus ansible collection add community.general --version 13.1.0
-ludus ansible collection add community.docker --version 5.2.1
-
+# Ludus manages and pins its own Ansible collections. Installing a newer
+# community.general here would remove the Proxmox module Ludus uses to deploy
+# ranges, so this installer intentionally adds only the role.
 ludus ansible role add -d ./roles/jahncer.kali_ctf
 ludus ansible roles list
 
