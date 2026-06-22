@@ -76,6 +76,30 @@
     mode: "0755"
   become: true
 
+- name: Check for an existing BloodHound application configuration
+  ansible.builtin.stat:
+    path: "{{ bloodhound_dir }}/bloodhound.config.json"
+  register: bloodhound_application_config
+
+- name: Repair the BloodHound configuration schema version
+  ansible.builtin.shell: |
+    set -euo pipefail
+    config={{ (bloodhound_dir ~ '/bloodhound.config.json') | quote }}
+    if jq -e '.version == 1' "$config" >/dev/null; then
+      exit 0
+    fi
+    temporary_file="$(mktemp)"
+    trap 'rm -f "$temporary_file"' EXIT
+    jq '.version = 1' "$config" > "$temporary_file"
+    cat "$temporary_file" > "$config"
+    echo repaired
+  args:
+    executable: /bin/bash
+  register: bloodhound_config_repair
+  changed_when: "'repaired' in bloodhound_config_repair.stdout"
+  become: true
+  when: bloodhound_application_config.stat.exists
+
 - name: Install BloodHound CE and capture generated admin password
   ansible.builtin.shell: |
     set -euo pipefail
@@ -84,7 +108,6 @@
     install_log={{ (bloodhound_password_file | dirname ~ '/.bloodhound-install.log') | quote }}
     trap 'rm -f "$install_log"' EXIT
 
-    {{ bloodhound_cli_path | quote }} config set version {{ bloodhound_version | quote }}
     {{ bloodhound_cli_path | quote }} install 2>&1 | tee "$install_log"
 
     password="$({{ bloodhound_cli_path | quote }} config get default_password \
