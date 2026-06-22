@@ -9,6 +9,10 @@
   ansible.builtin.include_tasks: packages.yml
   when: kali_install_packages | bool
 
+- name: Configure the passed-through NVIDIA compute GPU
+  ansible.builtin.include_tasks: nvidia-gpu.yml
+  when: kali_install_nvidia_gpu | bool
+
 - name: Configure XRDP desktop access
   ansible.builtin.include_tasks: xrdp.yml
   when: kali_install_xrdp | bool

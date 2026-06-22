@@ -17,6 +17,7 @@ kali_install_browser_policy: true
 kali_install_shell_helpers: true
 kali_install_xrdp: true
 kali_install_wordlists: true
+kali_install_nvidia_gpu: false
 kali_install_cloud_tools: false
 kali_install_wireless_tools: false
 kali_verify_installation: true
@@ -238,6 +239,20 @@ kali_xrdp_packages:
   - xorgxrdp
   - dbus-x11
   - kali-desktop-xfce
+
+# Optional NVIDIA compute profile. This deliberately leaves the VirtIO display
+# adapter in charge of XRDP and uses the passed-through GPU for CUDA/OpenCL work.
+kali_nvidia_expected_gpu: RTX 3090
+kali_nvidia_reboot: true
+kali_nvidia_packages:
+  - linux-headers-amd64
+  - nvidia-driver
+  - nvidia-opencl-icd
+  - nvidia-persistenced
+  - ocl-icd-libopencl1
+  - clinfo
+  - hashcat
+  - pciutils
 
 # GitHub release helper config.
 github_release_helper_path: /tmp/gh_release_download.py

@@ -44,6 +44,23 @@ Kali VM IP on port 3389 using the Kali VM account credentials. The session
 must open directly into XFCE. XRDP and its session manager must remain enabled
 after a reboot.
 
+## Validate NVIDIA RTX 3090 passthrough
+
+When `kali_install_nvidia_gpu: true`, the role runs these checks itself after
+installing the driver and rebooting the VM:
+
+```bash
+lspci -nn -d 10de:
+nvidia-smi
+clinfo -l
+hashcat -I
+systemctl is-enabled nvidia-persistenced
+systemctl is-active nvidia-persistenced
+```
+
+The RTX 3090 should appear in all three compute queries. The active graphical
+session should remain XRDP/Xorg on the VirtIO display adapter.
+
 ## Validate BloodHound CE
 
 ```bash

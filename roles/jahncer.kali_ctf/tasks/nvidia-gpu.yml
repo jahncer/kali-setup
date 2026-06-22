@@ -1,0 +1,141 @@
+---
+- name: Install PCI discovery tools before GPU detection
+  ansible.builtin.apt:
+    name: pciutils
+    state: present
+    update_cache: "{{ kali_apt_update_cache }}"
+    cache_valid_time: "{{ kali_apt_cache_valid_time }}"
+
+- name: Detect passed-through NVIDIA hardware
+  ansible.builtin.command:
+    argv:
+      - lspci
+      - -Dnnd
+      - "10de:"
+  register: nvidia_pci_devices
+  changed_when: false
+  failed_when: false
+
+- name: Require an NVIDIA PCI device when the GPU profile is enabled
+  ansible.builtin.assert:
+    that:
+      - nvidia_pci_devices.rc == 0
+      - nvidia_pci_devices.stdout | length > 0
+    fail_msg: >-
+      kali_install_nvidia_gpu is enabled, but no NVIDIA PCI device is visible.
+      Confirm Proxmox hostpci passthrough before rerunning this role.
+
+- name: Confirm the NVIDIA driver is available from configured Kali repositories
+  ansible.builtin.command:
+    argv:
+      - apt-cache
+      - show
+      - nvidia-driver
+  register: nvidia_driver_repository_check
+  changed_when: false
+  failed_when: false
+
+- name: Require Kali non-free repositories for the NVIDIA driver
+  ansible.builtin.assert:
+    that:
+      - nvidia_driver_repository_check.rc == 0
+      - nvidia_driver_repository_check.stdout | length > 0
+    fail_msg: >-
+      nvidia-driver is unavailable. Enable Kali's contrib, non-free, and
+      non-free-firmware repository components, then rerun this role.
+
+- name: Install NVIDIA driver and OpenCL cracking support
+  ansible.builtin.apt:
+    name: "{{ kali_nvidia_packages }}"
+    state: present
+    update_cache: "{{ kali_apt_update_cache }}"
+    cache_valid_time: "{{ kali_apt_cache_valid_time }}"
+  register: nvidia_package_install
+
+- name: Prevent Nouveau from claiming the passed-through GPU
+  ansible.builtin.copy:
+    dest: /etc/modprobe.d/blacklist-nouveau.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      blacklist nouveau
+      options nouveau modeset=0
+  register: nvidia_nouveau_blacklist
+
+- name: Rebuild initramfs after NVIDIA driver changes
+  ansible.builtin.command:
+    argv:
+      - update-initramfs
+      - -u
+  when: nvidia_package_install.changed or nvidia_nouveau_blacklist.changed
+  changed_when: true
+
+- name: Reboot to activate the NVIDIA kernel modules
+  ansible.builtin.reboot:
+    msg: Activating the passed-through NVIDIA GPU for the Kali CTF profile
+    reboot_timeout: 900
+    post_reboot_delay: 15
+  when:
+    - kali_nvidia_reboot | bool
+    - nvidia_package_install.changed or nvidia_nouveau_blacklist.changed
+
+- name: Require reboot permission after NVIDIA driver changes
+  ansible.builtin.assert:
+    that:
+      - kali_nvidia_reboot | bool
+    fail_msg: >-
+      NVIDIA packages or initramfs changed, but kali_nvidia_reboot is false.
+      Reboot the VM and rerun the role so GPU verification can complete.
+  when: nvidia_package_install.changed or nvidia_nouveau_blacklist.changed
+
+- name: Enable NVIDIA persistence mode service
+  ansible.builtin.systemd_service:
+    name: nvidia-persistenced.service
+    enabled: true
+    state: started
+
+- name: Query the active NVIDIA GPU
+  ansible.builtin.command:
+    argv:
+      - nvidia-smi
+      - --query-gpu=name,driver_version,memory.total
+      - --format=csv,noheader
+  register: nvidia_smi_result
+  changed_when: false
+
+- name: Require the expected NVIDIA GPU
+  ansible.builtin.assert:
+    that:
+      - kali_nvidia_expected_gpu in nvidia_smi_result.stdout
+    fail_msg: >-
+      nvidia-smi did not report the expected GPU '{{ kali_nvidia_expected_gpu }}'.
+      Reported devices: {{ nvidia_smi_result.stdout | default('none') }}
+
+- name: Query NVIDIA OpenCL platforms
+  ansible.builtin.command:
+    argv:
+      - clinfo
+      - -l
+  register: nvidia_clinfo_result
+  changed_when: false
+
+- name: Require an NVIDIA OpenCL platform
+  ansible.builtin.assert:
+    that:
+      - "'NVIDIA' in nvidia_clinfo_result.stdout"
+    fail_msg: NVIDIA OpenCL is unavailable after driver installation.
+
+- name: Query Hashcat compute backends
+  ansible.builtin.command:
+    argv:
+      - hashcat
+      - -I
+  register: nvidia_hashcat_result
+  changed_when: false
+
+- name: Require Hashcat to detect the NVIDIA GPU
+  ansible.builtin.assert:
+    that:
+      - "'NVIDIA' in nvidia_hashcat_result.stdout"
+    fail_msg: Hashcat cannot see the NVIDIA GPU through OpenCL.

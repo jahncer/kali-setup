@@ -18,3 +18,6 @@
     kali_user: kali
     kali_home: /home/kali
     kali_tools_dir: /opt/tools
+    # Enable only after Proxmox hostpci passthrough is attached and working.
+    kali_install_nvidia_gpu: true
+    kali_nvidia_expected_gpu: RTX 3090

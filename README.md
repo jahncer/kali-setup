@@ -121,6 +121,27 @@ Connect Microsoft Windows App / Microsoft Remote Desktop to the Kali VM IP on
 port `3389` using the account credentials supplied by the Kali Ludus template.
 The role does not replace the account password.
 
+## NVIDIA RTX 3090 passthrough
+
+For an existing Proxmox VM with the RTX 3090 already attached through
+`hostpci`, enable the compute profile in the Ludus role variables:
+
+```yaml
+role_vars:
+  kali_install_nvidia_gpu: true
+  kali_nvidia_expected_gpu: RTX 3090
+```
+
+The role installs Kali's NVIDIA driver, kernel headers, OpenCL runtime,
+Hashcat, and persistence daemon; blacklists Nouveau; reboots when required;
+then fails unless `nvidia-smi`, `clinfo`, and Hashcat all detect the card.
+XRDP continues to use the VirtIO display, so the 3090 remains available for
+compute workloads without needing a physical monitor.
+
+Ludus range configuration does not currently express Proxmox `hostpci`
+devices. Apply this role to the existing GPU-enabled VM rather than destroying
+and recreating it, or reattach the PCI device in Proxmox after a rebuild.
+
 ## Tool profiles and updates
 
 The default profile includes CTF, AD, web, pwn, pivoting, forensics, wordlists,
