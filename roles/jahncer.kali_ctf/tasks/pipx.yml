@@ -8,17 +8,18 @@
 
 - name: Install pipx tools
   community.general.pipx:
-    name: "{{ item.name }}"
-    source: "{{ item.source }}"
+    name: "{{ item.spec }}"
     state: present
   loop: "{{ pipx_tools }}"
   become: true
   become_user: "{{ kali_user }}"
   register: pipx_results
-  failed_when: false
+  failed_when:
+    - item.required | default(false) | bool
+    - pipx_results.failed | default(false)
 
 - name: Summarize pipx tool failures
   ansible.builtin.debug:
-    msg: "pipx tool '{{ item.item.name }}' was not installed. Check internet access/package name."
+    msg: "pipx tool '{{ item.item.app }}' was not installed. Check internet access/package name."
   loop: "{{ pipx_results.results | default([]) }}"
   when: item.failed | default(false)

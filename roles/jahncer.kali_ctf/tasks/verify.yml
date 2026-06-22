@@ -1,0 +1,92 @@
+---
+- name: Locate required operator commands
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/which
+      - "{{ item }}"
+  loop: "{{ kali_required_commands }}"
+  register: required_command_checks
+  changed_when: false
+  failed_when: false
+
+- name: Fail when required operator commands are missing
+  ansible.builtin.assert:
+    that:
+      - item.rc == 0
+    fail_msg: "Required command '{{ item.item }}' is missing after provisioning."
+  loop: "{{ required_command_checks.results }}"
+
+- name: Verify Python exploit and transfer modules
+  ansible.builtin.command:
+    argv:
+      - python3
+      - -c
+      - import pwn, pyftpdlib
+  become: true
+  become_user: "{{ kali_user }}"
+  changed_when: false
+
+- name: Gather service status
+  ansible.builtin.service_facts:
+
+- name: Require remote-access and container services
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.services[item].state == 'running'
+      - ansible_facts.services[item].status == 'enabled'
+    fail_msg: "Required service {{ item }} is not running and enabled."
+  loop:
+    - xrdp.service
+    - xrdp-sesman.service
+    - docker.service
+  when:
+    - item == 'docker.service' or kali_install_xrdp | bool
+
+- name: Check pinned release artifacts
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop:
+    - /opt/chisel/chisel_1.11.5_linux_amd64
+    - /opt/ligolo-ng/agent
+    - /opt/ligolo-ng/proxy
+    - /opt/peas/linpeas.sh
+    - /opt/peas/winPEASx64.exe
+    - /opt/pspy/pspy64
+    - /opt/kerbrute/kerbrute_linux_amd64
+  register: release_artifact_checks
+
+- name: Require pinned release artifacts
+  ansible.builtin.assert:
+    that:
+      - item.stat.exists
+    fail_msg: "Required release artifact {{ item.item }} is missing."
+  loop: "{{ release_artifact_checks.results }}"
+
+- name: Check BloodHound container health
+  ansible.builtin.command:
+    argv:
+      - docker
+      - compose
+      - ps
+      - --status
+      - running
+      - --services
+  args:
+    chdir: "{{ bloodhound_dir }}"
+  register: bloodhound_running_services
+  changed_when: false
+  when: kali_install_bloodhound_docker | bool
+
+- name: Require running BloodHound containers
+  ansible.builtin.assert:
+    that:
+      - bloodhound_running_services.stdout_lines | length >= 2
+    fail_msg: "BloodHound CE containers are not healthy after provisioning."
+  when: kali_install_bloodhound_docker | bool
+
+- name: Wait for the BloodHound web interface
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: 8080
+    timeout: 180
+  when: kali_install_bloodhound_docker | bool

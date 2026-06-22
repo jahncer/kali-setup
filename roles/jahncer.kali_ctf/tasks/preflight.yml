@@ -1,0 +1,40 @@
+---
+- name: Require a supported Kali target
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == 'Debian'
+      - ansible_distribution | lower == 'kali'
+      - ansible_architecture in kali_supported_architectures
+      - ansible_service_mgr == 'systemd'
+      - ansible_memtotal_mb | int >= kali_minimum_memory_mb | int
+      - >-
+        (ansible_mounts | selectattr('mount', 'equalto', '/') |
+        map(attribute='size_available') | first | int) >=
+        (kali_minimum_disk_gb | int * 1073741824)
+    fail_msg: >-
+      This role requires Kali Linux on amd64 with systemd and at least
+      {{ kali_minimum_memory_mb }} MB RAM and {{ kali_minimum_disk_gb }} GB free
+      on /. Detected {{ ansible_distribution }}
+      {{ ansible_architecture }}, init={{ ansible_service_mgr }},
+      RAM={{ ansible_memtotal_mb }} MB.
+
+- name: Verify outbound internet access required by tool installers
+  ansible.builtin.uri:
+    url: https://github.com
+    method: HEAD
+    status_code: 200
+    timeout: 20
+  when: kali_require_internet | bool
+
+- name: Verify the configured Kali user exists
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ kali_user }}"
+
+- name: Require the configured home to match the account
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.getent_passwd[kali_user][4] == kali_home
+    fail_msg: >-
+      kali_home={{ kali_home }} does not match {{ kali_user }}'s passwd entry
+      ({{ ansible_facts.getent_passwd[kali_user][4] }}).

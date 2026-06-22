@@ -19,13 +19,23 @@
   become: true
 
 - name: Download GitHub release tools
-  ansible.builtin.command: >
-    {{ github_release_helper_path }} {{ item.repo }} {{ item.regex }} {{ item.dest }}
+  ansible.builtin.command:
+    argv:
+      - "{{ github_release_helper_path }}"
+      - "{{ item.repo }}"
+      - "{{ item.regex }}"
+      - "{{ item.dest }}"
+      - --tag
+      - "{{ item.tag }}"
+      - --sha256
+      - "{{ item.sha256 }}"
   loop: "{{ github_release_tools }}"
   become: true
   register: github_release_results
-  changed_when: "'Installed' in github_release_results.stdout"
-  failed_when: false
+  changed_when: "'Installed' in github_release_results.stdout and 'Already installed' not in github_release_results.stdout"
+  failed_when:
+    - item.required | default(false) | bool
+    - github_release_results.rc != 0
 
 - name: Summarize GitHub release download failures
   ansible.builtin.debug:
@@ -43,19 +53,14 @@
   become: true
 
 - name: Make common downloaded Linux helpers executable
-  ansible.builtin.shell: |
-    set -euo pipefail
-    for d in /opt/chisel /opt/ligolo-ng /opt/peas /opt/pspy /opt/kerbrute; do
-      [ -d "$d" ] || continue
-      find "$d" -type f \
-        ! -name '*.exe' \
-        ! -name '*.ps1' \
-        ! -name '*.zip' \
-        ! -name '*.gz' \
-        ! -name '*.tar' \
-        -exec chmod +x {} \;
-    done
-  args:
-    executable: /bin/bash
+  ansible.builtin.file:
+    path: "{{ item }}"
+    mode: "0755"
+  loop:
+    - /opt/chisel/chisel_1.11.5_linux_amd64
+    - /opt/ligolo-ng/agent
+    - /opt/ligolo-ng/proxy
+    - /opt/peas/linpeas.sh
+    - /opt/pspy/pspy64
+    - /opt/kerbrute/kerbrute_linux_amd64
   become: true
-  changed_when: false

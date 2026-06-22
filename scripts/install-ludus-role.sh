@@ -9,13 +9,10 @@ if ! command -v ludus >/dev/null 2>&1; then
   exit 1
 fi
 
-if command -v ansible-galaxy >/dev/null 2>&1; then
-  ansible-galaxy collection install -r requirements.yml
-else
-  echo "[!] ansible-galaxy not found; skipping collection install." >&2
-fi
+ludus ansible collection add community.general --version 13.1.0
+ludus ansible collection add community.docker --version 5.2.1
 
-ludus ansible role add ./roles/jahncer.kali_ctf
+ludus ansible role add -d ./roles/jahncer.kali_ctf
 ludus ansible roles list
 
 echo "[+] Role added. Add roles: [jahncer.kali_ctf] to your Kali VM and run:"

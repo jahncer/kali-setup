@@ -5,7 +5,7 @@ kali_home: "/home/{{ kali_user }}"
 kali_tools_dir: /opt/tools
 kali_bin_dir: /usr/local/bin
 
-# Set to false for a minimal package-only run.
+# Feature switches. The default profile is intentionally complete for CTF work.
 kali_install_packages: true
 kali_install_optional_packages: true
 kali_install_pipx_tools: true
@@ -15,6 +15,23 @@ kali_install_bloodhound_docker: true
 kali_install_tmux_config: true
 kali_install_browser_policy: true
 kali_install_shell_helpers: true
+kali_install_xrdp: true
+kali_install_wordlists: true
+kali_install_cloud_tools: false
+kali_install_wireless_tools: false
+kali_verify_installation: true
+
+# Leave false for reproducible rebuilds. Set true deliberately to refresh
+# floating security-tool databases and binaries after the baseline succeeds.
+kali_update_tools: false
+
+# Supported deployment target.
+kali_supported_architectures:
+  - x86_64
+  - amd64
+kali_minimum_memory_mb: 3500
+kali_minimum_disk_gb: 20
+kali_require_internet: true
 
 # Keep apt conservative and reproducible. Use present for normal packages.
 kali_apt_update_cache: true
@@ -57,7 +74,41 @@ kali_core_packages:
   - rsync
   - openssh-client
   - docker.io
-  - docker-compose-plugin
+  - docker-compose
+  - openvpn
+  - network-manager-openvpn
+  - wireguard-tools
+  - proxychains4
+  - sshuttle
+  - metasploit-framework
+  - exploitdb
+  - netexec
+  - evil-winrm
+  - impacket-scripts
+  - certipy-ad
+  - responder
+  - mitm6
+  - coercer
+  - ldeep
+  - krbrelayx
+  - bloodhound-ce-python
+  - sharphound
+  - ffuf
+  - feroxbuster
+  - seclists
+  - wordlists
+  - python3-pwntools
+  - python3-pyftpdlib
+  - gdb-multiarch
+  - gef
+  - patchelf
+  - nasm
+  - strace
+  - ltrace
+  - qemu-user
+  - gcc-multilib
+  - tshark
+  - yara
 
 # Optional packages are installed one-by-one. Missing packages are reported but won't stop the role.
 # This makes the role survive Kali package renames across releases.
@@ -69,18 +120,15 @@ kali_optional_packages:
   - flameshot
   - wireshark
   - remmina
-  - freerdp2-x11
+  - freerdp3-x11
   - rlwrap
   - vim
   - neovim
   - terminator
 
   # web / recon
-  - ffuf
-  - feroxbuster
   - gobuster
   - dirsearch
-  - seclists
   - wpscan
   - nikto
   - sqlmap
@@ -90,6 +138,9 @@ kali_optional_packages:
   - zaproxy
   - chromium
   - firefox-esr
+  - arjun
+  - eyewitness
+  - gowitness
 
   # network enum
   - masscan
@@ -102,18 +153,15 @@ kali_optional_packages:
   - ldap-utils
   - dnsutils
   - whois
+  - arp-scan
+  - netdiscover
+  - dnsrecon
+  - amass
+  - theharvester
 
   # AD / Windows
-  - netexec
-  - evil-winrm
-  - impacket-scripts
-  - responder
-  - mitm6
-  - bloodhound-ce-python
-  - sharphound
   - bloodyad
   - ldapdomaindump
-  - certipy-ad
   - powershell
   - mingw-w64
   - wine
@@ -121,11 +169,14 @@ kali_optional_packages:
   # privesc / passwords / cracking
   - hashcat
   - john
-  - wordlists
   - hydra
   - medusa
   - hashid
   - cewl
+  - hashcat-utils
+  - crunch
+  - maskprocessor
+  - name-that-hash
 
   # pwn / reversing / forensics / stego
   - checksec
@@ -140,73 +191,133 @@ kali_optional_packages:
   - exiftool
   - steghide
   - zsteg
-  - foremost
   - volatility3
   - sleuthkit
   - autopsy
+  - oletools
+  - qpdf
+  - pngcheck
+  - imagemagick
+  - testdisk
+  - outguess
+  - payloadsallthethings
 
 # Tools installed with pipx. These are run as kali_user.
 pipx_tools:
-  - name: updog
-    source: updog
-  - name: pyftpdlib
-    source: pyftpdlib
-  - name: pwntools
-    source: pwntools
-  - name: impacket
-    source: git+https://github.com/fortra/impacket.git
+  - app: updog
+    spec: updog==1.4
+    required: false
+  - app: pwncat-cs
+    spec: pwncat-cs==0.5.4
+    required: false
+  - app: donpapi
+    spec: donpapi==2.0.1
+    required: false
+  - app: manspider
+    spec: manspider==1.0
+    required: false
+  - app: adidnsdump
+    spec: adidnsdump==1.4.0
+    required: false
+
+# Optional specialty profiles. Keep these out of the default image unless used.
+kali_cloud_packages:
+  - awscli
+  - kubernetes-client
+  - kubernetes-helm
+  - terraform
+  - trivy
+
+kali_wireless_packages:
+  - kali-tools-wireless
+  - hcxtools
+  - bettercap
+
+kali_xrdp_packages:
+  - xrdp
+  - xorgxrdp
+  - dbus-x11
+  - kali-desktop-xfce
 
 # GitHub release helper config.
 github_release_helper_path: /tmp/gh_release_download.py
-github_release_download_timeout: 120
 github_release_tools:
   - name: chisel-linux
     repo: jpillora/chisel
-    regex: 'linux_amd64.*\.gz$'
+    tag: v1.11.5
+    regex: 'chisel_1\.11\.5_linux_amd64\.gz$'
+    sha256: 2506226c4710a3c8d3b332f83d0f3b412fe2a8436b710ea0dbec44b288ab309b
     dest: /opt/chisel
-    executable_glob: '*chisel*'
+    required: true
 
   - name: chisel-windows
     repo: jpillora/chisel
-    regex: 'windows_amd64.*\.gz$'
+    tag: v1.11.5
+    regex: 'chisel_1\.11\.5_windows_amd64\.zip$'
+    sha256: b1bdaaa148c36236a71410fede2539417136d1152646c9fc5e2dac0f04216a68
     dest: /opt/chisel
+    required: true
 
-  - name: ligolo-ng-linux
+  - name: ligolo-ng-agent-linux
     repo: nicocha30/ligolo-ng
-    regex: 'linux_amd64.*\.tar\.gz$'
+    tag: v0.8.3
+    regex: 'ligolo-ng_agent_0\.8\.3_linux_amd64\.tar\.gz$'
+    sha256: c1e39fe53f14b2bcedcbe633ba97292b3aa83b43bd7d4185a0c4f7d6a467cda6
     dest: /opt/ligolo-ng
-    executable_glob: '*'
+    required: true
+
+  - name: ligolo-ng-proxy-linux
+    repo: nicocha30/ligolo-ng
+    tag: v0.8.3
+    regex: 'ligolo-ng_proxy_0\.8\.3_linux_amd64\.tar\.gz$'
+    sha256: a07ed234cba8714e8ea4d48f77dd25e1cae7aa5456fe0d1ed79e6cdf698c0d8e
+    dest: /opt/ligolo-ng
+    required: true
 
   - name: ligolo-ng-windows
     repo: nicocha30/ligolo-ng
-    regex: 'windows_amd64.*\.zip$'
+    tag: v0.8.3
+    regex: 'ligolo-ng_agent_0\.8\.3_windows_amd64\.zip$'
+    sha256: f949ecbb9f59c35d11020dde4ff4cb6c4c5b7346f07fefc8637609024f51fd04
     dest: /opt/ligolo-ng
+    required: true
 
   - name: linpeas
     repo: peass-ng/PEASS-ng
+    tag: 20260604-085abf96
     regex: 'linpeas\.sh$'
+    sha256: f532cc5e5373b736a269b731d16611d72773b991e7efa812e32532098c36f92d
     dest: /opt/peas
-    executable_glob: 'linpeas.sh'
+    required: true
 
   - name: winpeas
     repo: peass-ng/PEASS-ng
+    tag: 20260604-085abf96
     regex: 'winPEASx64\.exe$'
+    sha256: 2e92cc759ca17cb311f25730feddf614e4dd1aab86399338a109f1c29f76d42f
     dest: /opt/peas
+    required: true
 
   - name: pspy64
     repo: DominicBreuker/pspy
+    tag: v1.2.1
     regex: 'pspy64$'
+    sha256: c93f29a5cc1347bdb90e14a12424e6469c8cfea9a20b800bc249755f0043a3bb
     dest: /opt/pspy
-    executable_glob: 'pspy64'
+    required: true
 
   - name: kerbrute-linux
     repo: ropnop/kerbrute
-    regex: 'linux_amd64$'
+    tag: v1.0.3
+    regex: 'kerbrute_linux_amd64$'
+    sha256: 710a9d2653c8bd3689e451778dab9daec0de4c4c75f900788ccf23ef254b122a
     dest: /opt/kerbrute
-    executable_glob: '*kerbrute*'
+    required: true
 
 # ProjectDiscovery toolchain.
 projectdiscovery_bin_dir: /usr/local/bin
+projectdiscovery_pdtm_tag: v0.1.3
+projectdiscovery_pdtm_sha256: 17092d1c9cd82496f5ea39ed808527a0b1c5836035d5b7035e7381b0a9c5c94f
 projectdiscovery_tools:
   - nuclei
   - httpx
@@ -221,20 +332,51 @@ projectdiscovery_tools:
 projectdiscovery_update_templates: true
 
 # BloodHound CE Docker/BH-CLI config.
-bloodhound_dir: /opt/bloodhound-ce
-bloodhound_cli_url: https://github.com/SpecterOps/bloodhound-cli/releases/latest/download/bloodhound-cli-linux-amd64.tar.gz
+bloodhound_dir: /opt/bloodhound
+bloodhound_cli_version: v0.2.1
+bloodhound_cli_url: https://github.com/SpecterOps/bloodhound-cli/releases/download/v0.2.1/bloodhound-cli-linux-amd64.tar.gz
+bloodhound_cli_sha256: 2f932d8174f3ed69adf38a8ae94fa58f56d92fadecae8e240f767bb88d449983
 bloodhound_cli_path: /usr/local/bin/bloodhound-cli
+bloodhound_version: "8.0.0"
 bloodhound_password_file: "{{ kali_home }}/.config/bloodhound/initial-admin-password.txt"
 bloodhound_install_guard: "{{ bloodhound_dir }}/.bloodhound-ce-installed"
-bloodhound_compose_start_after_install: false
+bloodhound_compose_start_after_install: true
+
+# RDP is the primary access method for this VM.
+kali_xrdp_port: 3389
+kali_xrdp_desktop_command: startxfce4
 
 # Browser policy. This is intentionally light and safe.
 firefox_policy_dir: /usr/lib/firefox-esr/distribution
 firefox_homepage: about:blank
-firefox_extension_ids:
-  - darkreader
-  - foxyproxy-standard
-  - wappalyzer
+firefox_extensions:
+  - id: addon@darkreader.org
+    install_url: https://addons.mozilla.org/firefox/downloads/latest/darkreader/latest.xpi
+  - id: foxyproxy@eric.h.jung
+    install_url: https://addons.mozilla.org/firefox/downloads/latest/foxyproxy-standard/latest.xpi
+  - id: wappalyzer@crunchlabz.com
+    install_url: https://addons.mozilla.org/firefox/downloads/latest/wappalyzer/latest.xpi
 
 # tmux config.
 tmux_logging_dir: /opt/tmux-logging
+tmux_logging_version: b5c5f7b9bc679ca161a442e932d6186da8d3538f
+
+# Commands that must exist before Ludus reports this role successful.
+kali_required_commands:
+  - nmap
+  - nxc
+  - evil-winrm
+  - ffuf
+  - feroxbuster
+  - msfconsole
+  - searchsploit
+  - proxychains4
+  - openvpn
+  - docker
+  - pdtm
+  - nuclei
+  - tmux
+  - chisel
+  - ligolo-agent
+  - ligolo-proxy
+  - kerbrute

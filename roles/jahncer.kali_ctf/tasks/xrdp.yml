@@ -1,0 +1,72 @@
+---
+- name: Install the XRDP XFCE desktop stack
+  ansible.builtin.apt:
+    name: "{{ kali_xrdp_packages }}"
+    state: present
+    update_cache: true
+    cache_valid_time: "{{ kali_apt_cache_valid_time }}"
+  become: true
+
+- name: Add XRDP to the certificate group
+  ansible.builtin.user:
+    name: xrdp
+    groups: ssl-cert
+    append: true
+  become: true
+  notify: Restart XRDP
+
+- name: Check that the RDP account has an unlocked password
+  ansible.builtin.command:
+    argv:
+      - passwd
+      - -S
+      - "{{ kali_user }}"
+  register: kali_rdp_password_status
+  changed_when: false
+  become: true
+
+- name: Require password authentication for the RDP-only operator
+  ansible.builtin.assert:
+    that:
+      - kali_rdp_password_status.stdout.split()[1] == 'P'
+    fail_msg: >-
+      The {{ kali_user }} account does not have an unlocked password. XRDP/PAM
+      requires a password; configure one in the Kali Ludus template before
+      relying on RDP-only access.
+
+- name: Select XFCE for RDP sessions
+  ansible.builtin.copy:
+    dest: "{{ kali_home }}/.xsession"
+    content: "{{ kali_xrdp_desktop_command }}\n"
+    owner: "{{ kali_user }}"
+    group: "{{ kali_user }}"
+    mode: "0644"
+  become: true
+
+- name: Configure the XRDP listener port
+  ansible.builtin.lineinfile:
+    path: /etc/xrdp/xrdp.ini
+    regexp: '^port='
+    line: "port={{ kali_xrdp_port }}"
+    backup: true
+  become: true
+  notify: Restart XRDP
+
+- name: Enable and start XRDP services
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop:
+    - xrdp
+    - xrdp-sesman
+  become: true
+
+- name: Flush XRDP configuration changes
+  ansible.builtin.meta: flush_handlers
+
+- name: Wait for the RDP listener
+  ansible.builtin.wait_for:
+    port: "{{ kali_xrdp_port }}"
+    host: 127.0.0.1
+    timeout: 30

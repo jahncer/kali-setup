@@ -8,85 +8,94 @@
     mode: "0755"
   become: true
 
-- name: Install Golang for PDTM bootstrap
-  ansible.builtin.apt:
-    name:
-      - golang
-    state: present
-    update_cache: true
-    cache_valid_time: "{{ kali_apt_cache_valid_time }}"
-  become: true
-
-- name: Install latest PDTM using Go
-  ansible.builtin.shell: |
-    set -euo pipefail
-    GOBIN={{ projectdiscovery_bin_dir }} go install -v github.com/projectdiscovery/pdtm/cmd/pdtm@latest
-  args:
-    executable: /bin/bash
-    creates: "{{ projectdiscovery_bin_dir }}/pdtm"
-  become: true
-  register: pdtm_go_install
-  failed_when: false
-  changed_when: pdtm_go_install.rc == 0
-
-- name: Download PDTM release binary if Go install failed
-  ansible.builtin.command: >
-    {{ github_release_helper_path }} projectdiscovery/pdtm 'linux_amd64.*(zip|tar.gz)$' /opt/pdtm
+- name: Download the pinned PDTM release
+  ansible.builtin.command:
+    argv:
+      - "{{ github_release_helper_path }}"
+      - projectdiscovery/pdtm
+      - "pdtm_0.1.3_linux_amd64\\.zip$"
+      - /opt/pdtm
+      - --tag
+      - "{{ projectdiscovery_pdtm_tag }}"
+      - --sha256
+      - "{{ projectdiscovery_pdtm_sha256 }}"
   become: true
   register: pdtm_release_download
-  failed_when: false
-  changed_when: pdtm_release_download.rc == 0
-  when: pdtm_go_install.rc != 0
+  changed_when: "'Installed' in pdtm_release_download.stdout and 'Already installed' not in pdtm_release_download.stdout"
 
-- name: Install PDTM binary from release fallback
-  ansible.builtin.shell: |
-    set -euo pipefail
-    found="$(find /opt/pdtm -maxdepth 3 -type f -name 'pdtm' | head -n 1)"
-    test -n "$found"
-    install -m 0755 "$found" {{ projectdiscovery_bin_dir }}/pdtm
-  args:
-    executable: /bin/bash
-    creates: "{{ projectdiscovery_bin_dir }}/pdtm"
+- name: Install the pinned PDTM binary
+  ansible.builtin.copy:
+    src: /opt/pdtm/pdtm
+    dest: "{{ projectdiscovery_bin_dir }}/pdtm"
+    remote_src: true
+    owner: root
+    group: root
+    mode: "0755"
   become: true
-  when: pdtm_go_install.rc != 0
 
-- name: Install/update ProjectDiscovery tools with PDTM
-  ansible.builtin.command: >
-    {{ projectdiscovery_bin_dir }}/pdtm
-    -bp {{ projectdiscovery_bin_dir }}
-    -install {{ projectdiscovery_tools | join(',') }}
+- name: Install or update ProjectDiscovery tools with PDTM
+  ansible.builtin.command:
+    argv:
+      - "{{ projectdiscovery_bin_dir }}/pdtm"
+      - -bp
+      - "{{ projectdiscovery_bin_dir }}"
+      - "{{ '-update' if kali_update_tools | bool else '-install' }}"
+      - "{{ projectdiscovery_tools | join(',') }}"
   become: true
   register: pdtm_install
-  changed_when: true
-  failed_when: false
+  changed_when: >-
+    'Installed' in pdtm_install.stdout or
+    'Updated' in pdtm_install.stdout
 
-- name: Summarize PDTM installation failure
-  ansible.builtin.debug:
-    msg: "PDTM install/update failed. Check Go version, internet access, and ProjectDiscovery release availability."
-  when: pdtm_install.rc | default(0) != 0
+- name: Ensure the Nuclei config directory exists
+  ansible.builtin.file:
+    path: "{{ kali_home }}/.config/nuclei"
+    state: directory
+    owner: "{{ kali_user }}"
+    group: "{{ kali_user }}"
+    mode: "0755"
+  become: true
+
+- name: Check the Nuclei template baseline marker
+  ansible.builtin.stat:
+    path: "{{ kali_home }}/.config/nuclei/.baseline-templates-updated"
+  register: nuclei_template_marker
 
 - name: Update Nuclei templates
   ansible.builtin.command: nuclei -update-templates
   become: true
   become_user: "{{ kali_user }}"
-  register: nuclei_templates
   changed_when: true
-  failed_when: false
-  when: projectdiscovery_update_templates | bool
+  when:
+    - projectdiscovery_update_templates | bool
+    - kali_update_tools | bool or not nuclei_template_marker.stat.exists
+
+- name: Record the Nuclei template update
+  ansible.builtin.file:
+    path: "{{ kali_home }}/.config/nuclei/.baseline-templates-updated"
+    state: touch
+    owner: "{{ kali_user }}"
+    group: "{{ kali_user }}"
+    mode: "0644"
+  become: true
+  when:
+    - projectdiscovery_update_templates | bool
+    - kali_update_tools | bool or not nuclei_template_marker.stat.exists
 
 - name: Record ProjectDiscovery versions
-  ansible.builtin.shell: |
-    set +e
-    echo "== nuclei =="; nuclei -version 2>&1 || true
-    echo "== httpx =="; httpx -version 2>&1 || true
-    echo "== subfinder =="; subfinder -version 2>&1 || true
-    echo "== naabu =="; naabu -version 2>&1 || true
-  args:
-    executable: /bin/bash
+  ansible.builtin.command:
+    argv:
+      - "{{ item }}"
+      - -version
+  loop:
+    - nuclei
+    - httpx
+    - subfinder
+    - naabu
   register: projectdiscovery_versions
   changed_when: false
-  failed_when: false
 
 - name: Print ProjectDiscovery versions
   ansible.builtin.debug:
-    var: projectdiscovery_versions.stdout_lines
+    msg: "{{ item.item }}: {{ item.stdout | default(item.stderr) }}"
+  loop: "{{ projectdiscovery_versions.results }}"

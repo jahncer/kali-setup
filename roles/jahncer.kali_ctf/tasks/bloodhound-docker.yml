@@ -7,14 +7,10 @@
       - curl
       - ca-certificates
       - jq
-      - bloodhound-ce-python
-      - sharphound
     state: present
     update_cache: true
     cache_valid_time: "{{ kali_apt_cache_valid_time }}"
   become: true
-  register: bloodhound_support_packages
-  failed_when: false
 
 - name: Enable and start Docker
   ansible.builtin.service:
@@ -47,53 +43,73 @@
 - name: Download BloodHound CLI archive
   ansible.builtin.get_url:
     url: "{{ bloodhound_cli_url }}"
-    dest: /tmp/bloodhound-cli-linux-amd64.tar.gz
+    dest: "/tmp/bloodhound-cli-{{ bloodhound_cli_version }}-linux-amd64.tar.gz"
+    checksum: "sha256:{{ bloodhound_cli_sha256 }}"
     mode: "0644"
-    force: false
+    force: "{{ kali_update_tools | bool }}"
+  become: true
+
+- name: Create a dedicated BloodHound CLI extraction directory
+  ansible.builtin.file:
+    path: "/tmp/bloodhound-cli-{{ bloodhound_cli_version }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
   become: true
 
 - name: Extract BloodHound CLI into temporary directory
   ansible.builtin.unarchive:
-    src: /tmp/bloodhound-cli-linux-amd64.tar.gz
-    dest: /tmp
+    src: "/tmp/bloodhound-cli-{{ bloodhound_cli_version }}-linux-amd64.tar.gz"
+    dest: "/tmp/bloodhound-cli-{{ bloodhound_cli_version }}"
     remote_src: true
+    creates: "/tmp/bloodhound-cli-{{ bloodhound_cli_version }}/bloodhound-cli"
   become: true
 
 - name: Install BloodHound CLI binary
-  ansible.builtin.shell: |
-    set -euo pipefail
-    found="$(find /tmp -maxdepth 3 -type f -name 'bloodhound-cli' | head -n 1)"
-    test -n "$found"
-    install -m 0755 "$found" {{ bloodhound_cli_path }}
-  args:
-    executable: /bin/bash
-    creates: "{{ bloodhound_cli_path }}"
+  ansible.builtin.copy:
+    src: "/tmp/bloodhound-cli-{{ bloodhound_cli_version }}/bloodhound-cli"
+    dest: "{{ bloodhound_cli_path }}"
+    remote_src: true
+    owner: root
+    group: root
+    mode: "0755"
   become: true
 
 - name: Install BloodHound CE and capture generated admin password
   ansible.builtin.shell: |
     set -euo pipefail
-    cd {{ bloodhound_dir }}
+    umask 077
+    cd {{ bloodhound_dir | quote }}
+    install_log={{ (bloodhound_password_file | dirname ~ '/.bloodhound-install.log') | quote }}
+    trap 'rm -f "$install_log"' EXIT
 
-    {{ bloodhound_cli_path }} install 2>&1 | tee /tmp/bloodhound-install.log
+    {{ bloodhound_cli_path | quote }} config set version {{ bloodhound_version | quote }}
+    {{ bloodhound_cli_path | quote }} install 2>&1 | tee "$install_log"
 
-    # BloodHound CLI wording has changed across versions, so keep extraction flexible.
-    password_line="$(grep -E 'Initial Password Set To:|You can log in as `admin` with this password:|password:' /tmp/bloodhound-install.log | tail -n 1 || true)"
-    if [ -n "$password_line" ]; then
-      echo "$password_line" \
-        | sed -E 's/.*Initial Password Set To:[[:space:]]*//; s/.*password:[[:space:]]*//; s/`//g' \
-        > {{ bloodhound_password_file }}
-    else
-      echo "Password was not detected automatically. Run: sudo {{ bloodhound_cli_path }} resetpwd" > {{ bloodhound_password_file }}
-    fi
+    password="$({{ bloodhound_cli_path | quote }} config get default_password \
+      | awk '/DEFAULT_PASSWORD/ {print $NF}')"
+    test -n "$password"
+    printf '%s\n' "$password" > {{ bloodhound_password_file | quote }}
 
-    chown {{ kali_user }}:{{ kali_user }} {{ bloodhound_password_file }}
-    chmod 0600 {{ bloodhound_password_file }}
-    touch {{ bloodhound_install_guard }}
-    chown {{ kali_user }}:{{ kali_user }} {{ bloodhound_install_guard }}
+    chown {{ kali_user | quote }}:{{ kali_user | quote }} {{ bloodhound_password_file | quote }}
+    chmod 0600 {{ bloodhound_password_file | quote }}
+    touch {{ bloodhound_install_guard | quote }}
+    chown {{ kali_user | quote }}:{{ kali_user | quote }} {{ bloodhound_install_guard | quote }}
   args:
     executable: /bin/bash
     creates: "{{ bloodhound_install_guard }}"
+  become: true
+  no_log: true
+  environment:
+    XDG_CONFIG_HOME: "{{ bloodhound_dir | dirname }}"
+
+- name: Make the BloodHound workspace usable by the Kali operator
+  ansible.builtin.file:
+    path: "{{ bloodhound_dir }}"
+    owner: "{{ kali_user }}"
+    group: "{{ kali_user }}"
+    recurse: true
   become: true
 
 - name: Start BloodHound CE after install if requested
@@ -102,8 +118,8 @@
     chdir: "{{ bloodhound_dir }}"
   become: true
   when: bloodhound_compose_start_after_install | bool
-  changed_when: true
-  failed_when: false
+  register: bloodhound_compose_start
+  changed_when: "'Started' in bloodhound_compose_start.stdout or 'Created' in bloodhound_compose_start.stdout"
 
 - name: Copy SharpHound collectors into user workspace when installed
   ansible.builtin.copy:
@@ -117,4 +133,3 @@
     - /usr/share/sharphound/SharpHound.exe
     - /usr/share/sharphound/SharpHound.ps1
   become: true
-  failed_when: false

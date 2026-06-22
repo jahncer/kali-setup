@@ -7,7 +7,6 @@
     group: root
     mode: "0755"
   become: true
-  failed_when: false
 
 - name: Install Firefox policies
   ansible.builtin.template:
@@ -17,7 +16,6 @@
     group: root
     mode: "0644"
   become: true
-  failed_when: false
 
 - name: Create browser workspace directories
   ansible.builtin.file:

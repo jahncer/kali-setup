@@ -22,6 +22,20 @@
   failed_when: false
   when: kali_install_optional_packages | bool
 
+- name: Install optional cloud tooling profile
+  ansible.builtin.apt:
+    name: "{{ kali_cloud_packages }}"
+    state: present
+  become: true
+  when: kali_install_cloud_tools | bool
+
+- name: Install optional wireless tooling profile
+  ansible.builtin.apt:
+    name: "{{ kali_wireless_packages }}"
+    state: present
+  become: true
+  when: kali_install_wireless_tools | bool
+
 - name: Summarize optional packages that failed to install
   ansible.builtin.debug:
     msg: "Optional package '{{ item.item }}' was not installed. It may not exist in this Kali release or the apt repo may be unavailable."

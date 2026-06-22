@@ -52,11 +52,9 @@ KaliSetup/
 On the Ludus server, as the Ludus user that owns the range:
 
 ```bash
-git clone https://github.com/jahncer/KaliSetup.git
-cd KaliSetup
-ansible-galaxy collection install -r requirements.yml
-ludus ansible role add ./roles/jahncer.kali_ctf
-ludus ansible roles list
+git clone https://github.com/jahncer/kali-setup.git
+cd kali-setup
+./scripts/install-ludus-role.sh
 ```
 
 Add the role to your Kali VM in the Ludus range YAML:
@@ -113,6 +111,36 @@ If the password is lost or the database is reset:
 bh-reset
 ```
 
+## RDP-first access from macOS
+
+XRDP, XorgXRDP, and XFCE are part of the required baseline. The role enables
+`xrdp` and `xrdp-sesman` at boot, configures XFCE as the remote session, and
+fails provisioning if port 3389 is not listening.
+
+Connect Microsoft Windows App / Microsoft Remote Desktop to the Kali VM IP on
+port `3389` using the account credentials supplied by the Kali Ludus template.
+The role does not replace the account password.
+
+## Tool profiles and updates
+
+The default profile includes CTF, AD, web, pwn, pivoting, forensics, wordlists,
+BloodHound, and remote-desktop essentials. Cloud and wireless packages are
+available but disabled by default:
+
+```yaml
+role_vars:
+  kali_install_cloud_tools: true
+  kali_install_wireless_tools: true
+```
+
+External baseline assets are pinned and checksum-verified. To deliberately
+refresh tool databases and ProjectDiscovery binaries on an existing VM:
+
+```yaml
+role_vars:
+  kali_update_tools: true
+```
+
 ## ProjectDiscovery / Nuclei
 
 This role installs PDTM and uses it to install/update ProjectDiscovery tools such as Nuclei, httpx, subfinder, dnsx, naabu, katana, interactsh-client, mapcidr, tlsx, and uncover.
@@ -127,6 +155,13 @@ nuclei -update-templates
 ## Idempotency notes
 
 Most tasks use Ansible modules with `state: present`, meaning packages/files/repos that already exist should be left alone. For one-time installers like BloodHound CE, the role uses guard files so repeated Ansible runs do not reinstall BloodHound or regenerate credentials.
+
+## CI
+
+The repository includes the validated workflow at
+`docs/github-actions-ci.yml.example`. Copy it to `.github/workflows/ci.yml`
+using GitHub credentials with `workflow` scope to enable automatic YAML,
+Ansible lint, syntax, shell, and downloader safety checks.
 
 ## Important safety notes
 

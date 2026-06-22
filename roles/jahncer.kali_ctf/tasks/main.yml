@@ -1,10 +1,21 @@
 ---
+- name: Validate the Kali deployment target
+  ansible.builtin.include_tasks: preflight.yml
+
 - name: Ensure baseline directories exist
   ansible.builtin.include_tasks: directories.yml
 
 - name: Install package baseline
   ansible.builtin.include_tasks: packages.yml
   when: kali_install_packages | bool
+
+- name: Configure XRDP desktop access
+  ansible.builtin.include_tasks: xrdp.yml
+  when: kali_install_xrdp | bool
+
+- name: Prepare CTF wordlists
+  ansible.builtin.include_tasks: wordlists.yml
+  when: kali_install_wordlists | bool
 
 - name: Install pipx tools
   ansible.builtin.include_tasks: pipx.yml
@@ -33,3 +44,7 @@
 - name: Configure shell helpers
   ansible.builtin.include_tasks: shell.yml
   when: kali_install_shell_helpers | bool
+
+- name: Verify the completed Kali baseline
+  ansible.builtin.include_tasks: verify.yml
+  when: kali_verify_installation | bool

@@ -1,0 +1,35 @@
+---
+- name: Check for the compressed RockYou wordlist
+  ansible.builtin.stat:
+    path: /usr/share/wordlists/rockyou.txt.gz
+  register: rockyou_archive
+
+- name: Extract RockYou once
+  ansible.builtin.command:
+    argv:
+      - gzip
+      - -dk
+      - /usr/share/wordlists/rockyou.txt.gz
+    creates: /usr/share/wordlists/rockyou.txt
+  become: true
+  when: rockyou_archive.stat.exists
+
+- name: Check common wordlist collections
+  ansible.builtin.stat:
+    path: "{{ item.src }}"
+  loop:
+    - src: /usr/share/seclists
+      dest: /usr/share/wordlists/seclists
+    - src: /usr/share/payloadsallthethings
+      dest: /usr/share/wordlists/payloadsallthethings
+  register: wordlist_sources
+
+- name: Create stable wordlist links
+  ansible.builtin.file:
+    src: "{{ item.item.src }}"
+    dest: "{{ item.item.dest }}"
+    state: link
+    force: true
+  loop: "{{ wordlist_sources.results }}"
+  become: true
+  when: item.stat.exists

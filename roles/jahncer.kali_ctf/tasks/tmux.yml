@@ -3,7 +3,8 @@
   ansible.builtin.git:
     repo: https://github.com/tmux-plugins/tmux-logging.git
     dest: "{{ tmux_logging_dir }}"
-    update: true
+    version: "{{ tmux_logging_version }}"
+    update: false
   become: true
 
 - name: Ensure tmux-logging ownership

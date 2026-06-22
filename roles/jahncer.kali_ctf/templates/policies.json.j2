@@ -13,7 +13,11 @@
     "ExtensionSettings": {
       "*": {
         "installation_mode": "allowed"
-      }
+      }{% for extension in firefox_extensions %},
+      "{{ extension.id }}": {
+        "installation_mode": "force_installed",
+        "install_url": "{{ extension.install_url }}"
+      }{% endfor %}
     }
   }
 }

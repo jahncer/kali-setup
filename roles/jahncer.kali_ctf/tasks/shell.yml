@@ -3,9 +3,17 @@
   ansible.builtin.file:
     path: "{{ kali_home }}/.zshrc"
     state: touch
+    access_time: preserve
+    modification_time: preserve
     owner: "{{ kali_user }}"
     group: "{{ kali_user }}"
     mode: "0644"
+  become: true
+
+- name: Set zsh as the Kali user's default shell
+  ansible.builtin.user:
+    name: "{{ kali_user }}"
+    shell: /usr/bin/zsh
   become: true
 
 - name: Add CTF helper aliases and PATH
@@ -19,6 +27,10 @@
     block: |
       export PATH="$PATH:/usr/local/bin:{{ kali_home }}/.local/bin:{{ kali_home }}/go/bin"
       export EDITOR=vim
+      export HISTFILE={{ kali_home }}/.zsh_history
+      export HISTSIZE=100000
+      export SAVEHIST=100000
+      setopt appendhistory sharehistory hist_ignore_dups
 
       alias ll='ls -lah'
       alias la='ls -la'
@@ -36,7 +48,7 @@
       alias bh-stop='cd {{ bloodhound_dir }} && docker compose down'
       alias bh-logs='cd {{ bloodhound_dir }} && docker compose logs -f'
       alias bh-pass='cat {{ bloodhound_password_file }}'
-      alias bh-reset='cd {{ bloodhound_dir }} && sudo {{ bloodhound_cli_path }} resetpwd'
+      alias bh-reset='cd {{ bloodhound_dir }} && sudo env XDG_CONFIG_HOME={{ bloodhound_dir | dirname }} {{ bloodhound_cli_path }} resetpwd'
       alias bh-ui='xdg-open http://localhost:8080/ui/login >/dev/null 2>&1 &'
       alias bh-work='cd ~/bloodhound'
 
@@ -47,6 +59,17 @@
       alias ctf='cd ~/ctf'
       alias scans='cd ~/ctf/scans'
       alias loot='cd ~/ctf/loot'
+
+      function tunip() { ip -br addr show tun0 2>/dev/null || echo 'tun0 is not up'; }
+      function listener() { rlwrap nc -lvnp "${1:-4444}"; }
+      function webserve() { python3 -m http.server "${1:-8000}"; }
+      function newctf() {
+        local name="${1:?usage: newctf NAME}"
+        local root="{{ kali_home }}/ctf/$name"
+        mkdir -p "$root"/{scans,loot,notes,transfers,evidence/screenshots}
+        cp -n /opt/ctf-template/README.md "$root/README.md"
+        cd "$root" || return
+      }
   become: true
 
 - name: Install bash aliases too
@@ -68,7 +91,7 @@
       alias bh-start='cd {{ bloodhound_dir }} && docker compose up -d'
       alias bh-stop='cd {{ bloodhound_dir }} && docker compose down'
       alias bh-pass='cat {{ bloodhound_password_file }}'
-      alias bh-reset='cd {{ bloodhound_dir }} && sudo {{ bloodhound_cli_path }} resetpwd'
+      alias bh-reset='cd {{ bloodhound_dir }} && sudo env XDG_CONFIG_HOME={{ bloodhound_dir | dirname }} {{ bloodhound_cli_path }} resetpwd'
       alias peas='cd /opt/peas'
       alias ctf='cd ~/ctf'
   become: true
@@ -84,5 +107,12 @@
       dest: /usr/local/bin/pspy64
     - src: /opt/peas/linpeas.sh
       dest: /usr/local/bin/linpeas.sh
+    - src: /opt/chisel/chisel_1.11.5_linux_amd64
+      dest: /usr/local/bin/chisel
+    - src: /opt/ligolo-ng/agent
+      dest: /usr/local/bin/ligolo-agent
+    - src: /opt/ligolo-ng/proxy
+      dest: /usr/local/bin/ligolo-proxy
+    - src: /opt/kerbrute/kerbrute_linux_amd64
+      dest: /usr/local/bin/kerbrute
   become: true
-  failed_when: false

@@ -22,6 +22,34 @@
     - "{{ kali_home }}/ctf/tools"
     - "{{ kali_home }}/ctf/loot"
     - "{{ kali_home }}/ctf/scans"
+    - "{{ kali_home }}/ctf/notes"
+    - "{{ kali_home }}/ctf/transfers"
+    - "{{ kali_home }}/ctf/vpn"
+    - "{{ kali_home }}/ctf/evidence"
+    - "{{ kali_home }}/ctf/evidence/screenshots"
     - "{{ kali_home }}/bloodhound"
     - "{{ kali_home }}/bloodhound/collectors"
+    - /opt/ctf-template
+  become: true
+
+- name: Install a reusable engagement notes template
+  ansible.builtin.copy:
+    dest: /opt/ctf-template/README.md
+    owner: "{{ kali_user }}"
+    group: "{{ kali_user }}"
+    mode: "0644"
+    content: |
+      # Engagement
+
+      ## Scope and credentials
+
+      ## Hosts
+
+      ## Enumeration
+
+      ## Findings and attack path
+
+      ## Loot and evidence
+
+      ## Cleanup
   become: true
