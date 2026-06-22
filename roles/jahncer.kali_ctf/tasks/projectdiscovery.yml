@@ -62,7 +62,10 @@
   register: nuclei_template_marker
 
 - name: Update Nuclei templates
-  ansible.builtin.command: nuclei -update-templates
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/nuclei
+      - -update-templates
   become: true
   become_user: "{{ kali_user }}"
   changed_when: true
@@ -85,17 +88,21 @@
 - name: Record ProjectDiscovery versions
   ansible.builtin.command:
     argv:
-      - "{{ item }}"
+      - "{{ item.command }}"
       - -version
   loop:
-    - nuclei
-    - httpx
-    - subfinder
-    - naabu
+    - name: nuclei
+      command: /usr/bin/nuclei
+    - name: httpx-toolkit
+      command: /usr/bin/httpx-toolkit
+    - name: subfinder
+      command: /usr/bin/subfinder
+    - name: naabu
+      command: /usr/bin/naabu
   register: projectdiscovery_versions
   changed_when: false
 
 - name: Print ProjectDiscovery versions
   ansible.builtin.debug:
-    msg: "{{ item.item }}: {{ item.stdout | default(item.stderr) }}"
+    msg: "{{ item.item.name }}: {{ item.stdout | default(item.stderr) }}"
   loop: "{{ projectdiscovery_versions.results }}"

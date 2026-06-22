@@ -168,7 +168,10 @@ role_vars:
 
 ## ProjectDiscovery / Nuclei
 
-This role installs PDTM and uses it to install/update ProjectDiscovery tools such as Nuclei, httpx, subfinder, dnsx, naabu, katana, interactsh-client, mapcidr, tlsx, and uncover.
+The essential ProjectDiscovery tools (Nuclei, httpx-toolkit, subfinder, dnsx,
+and naabu) come from Kali's rolling repositories so provisioning does not
+depend on GitHub API discovery. PDTM is also installed and is used to attempt
+installation of the additional ProjectDiscovery utilities.
 
 To update later:
 

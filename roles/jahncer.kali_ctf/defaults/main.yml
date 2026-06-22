@@ -96,6 +96,11 @@ kali_core_packages:
   - sharphound
   - ffuf
   - feroxbuster
+  - nuclei
+  - subfinder
+  - dnsx
+  - naabu
+  - httpx-toolkit
   - seclists
   - wordlists
   - python3-pwntools
