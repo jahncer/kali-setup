@@ -4,6 +4,7 @@ kali_user: kali
 kali_home: "/home/{{ kali_user }}"
 kali_tools_dir: /opt/tools
 kali_bin_dir: /usr/local/bin
+kali_operator_path: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:{{ kali_home }}/.local/bin:{{ kali_home }}/go/bin"
 
 # Feature switches. The default profile is intentionally complete for CTF work.
 kali_install_packages: true

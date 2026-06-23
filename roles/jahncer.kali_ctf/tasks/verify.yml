@@ -2,6 +2,8 @@
 - name: Locate required operator commands
   ansible.builtin.command:
     argv:
+      - /usr/bin/env
+      - "PATH={{ kali_operator_path }}"
       - /usr/bin/which
       - "{{ item }}"
   loop: "{{ kali_required_commands }}"
