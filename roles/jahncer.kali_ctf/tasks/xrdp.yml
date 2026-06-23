@@ -37,10 +37,17 @@
 - name: Select XFCE for RDP sessions
   ansible.builtin.copy:
     dest: "{{ kali_home }}/.xsession"
-    content: "{{ kali_xrdp_desktop_command }}\n"
+    content: |
+      #!/bin/sh
+      unset DBUS_SESSION_BUS_ADDRESS
+      unset XDG_RUNTIME_DIR
+      export XDG_SESSION_TYPE=x11
+      export DESKTOP_SESSION=xfce
+      export XDG_CURRENT_DESKTOP=XFCE
+      exec dbus-run-session -- {{ kali_xrdp_desktop_command }}
     owner: "{{ kali_user }}"
     group: "{{ kali_user }}"
-    mode: "0644"
+    mode: "0755"
   become: true
 
 - name: Configure the XRDP listener port
