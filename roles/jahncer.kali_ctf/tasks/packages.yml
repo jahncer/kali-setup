@@ -6,6 +6,13 @@
   become: true
   when: kali_apt_update_cache | bool
 
+- name: Install the Kali default tool baseline
+  ansible.builtin.apt:
+    name: "{{ kali_default_metapackages }}"
+    state: present
+  become: true
+  when: kali_install_default_metapackage | bool
+
 - name: Install core Kali packages
   ansible.builtin.apt:
     name: "{{ kali_core_packages }}"

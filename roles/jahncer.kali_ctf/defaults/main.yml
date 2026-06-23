@@ -7,6 +7,7 @@ kali_bin_dir: /usr/local/bin
 
 # Feature switches. The default profile is intentionally complete for CTF work.
 kali_install_packages: true
+kali_install_default_metapackage: true
 kali_install_optional_packages: true
 kali_install_pipx_tools: true
 kali_install_github_releases: true
@@ -39,6 +40,12 @@ kali_apt_update_cache: true
 kali_apt_cache_valid_time: 3600
 
 # Core packages should generally exist on Kali/Debian and should fail if missing.
+kali_default_metapackages:
+  # Kali's official default desktop-image tool baseline. Keep this separate from
+  # the curated package list so operators can disable the broad Kali baseline
+  # without disabling the CTF-specific additions below.
+  - kali-linux-default
+
 kali_core_packages:
   - ca-certificates
   - apt-transport-https

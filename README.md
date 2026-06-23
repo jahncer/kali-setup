@@ -149,8 +149,17 @@ and recreating it, or reattach the PCI device in Proxmox after a rebuild.
 ## Tool profiles and updates
 
 The default profile includes CTF, AD, web, pwn, pivoting, forensics, wordlists,
-BloodHound, and remote-desktop essentials. Cloud and wireless packages are
-available but disabled by default:
+BloodHound, and remote-desktop essentials. It also installs Kali's official
+`kali-linux-default` metapackage first, then layers the curated CTF additions
+on top. For a leaner custom image, disable only the broad Kali default baseline
+while keeping the curated role packages enabled:
+
+```yaml
+role_vars:
+  kali_install_default_metapackage: false
+```
+
+Cloud and wireless packages are available but disabled by default:
 
 ```yaml
 role_vars:
