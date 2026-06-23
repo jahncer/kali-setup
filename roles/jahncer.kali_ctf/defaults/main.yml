@@ -341,6 +341,20 @@ github_release_tools:
     dest: /opt/kerbrute
     required: true
 
+github_release_symlinks:
+  - src: /opt/pspy/pspy64
+    dest: /usr/local/bin/pspy64
+  - src: /opt/peas/linpeas.sh
+    dest: /usr/local/bin/linpeas.sh
+  - src: /opt/chisel/chisel_1.11.5_linux_amd64
+    dest: /usr/local/bin/chisel
+  - src: /opt/ligolo-ng/agent
+    dest: /usr/local/bin/ligolo-agent
+  - src: /opt/ligolo-ng/proxy
+    dest: /usr/local/bin/ligolo-proxy
+  - src: /opt/kerbrute/kerbrute_linux_amd64
+    dest: /usr/local/bin/kerbrute
+
 # ProjectDiscovery toolchain.
 projectdiscovery_bin_dir: /usr/local/bin
 projectdiscovery_pdtm_tag: v0.1.3

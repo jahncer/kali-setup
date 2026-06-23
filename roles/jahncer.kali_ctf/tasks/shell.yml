@@ -102,17 +102,5 @@
     dest: "{{ item.dest }}"
     state: link
     force: true
-  loop:
-    - src: /opt/pspy/pspy64
-      dest: /usr/local/bin/pspy64
-    - src: /opt/peas/linpeas.sh
-      dest: /usr/local/bin/linpeas.sh
-    - src: /opt/chisel/chisel_1.11.5_linux_amd64
-      dest: /usr/local/bin/chisel
-    - src: /opt/ligolo-ng/agent
-      dest: /usr/local/bin/ligolo-agent
-    - src: /opt/ligolo-ng/proxy
-      dest: /usr/local/bin/ligolo-proxy
-    - src: /opt/kerbrute/kerbrute_linux_amd64
-      dest: /usr/local/bin/kerbrute
+  loop: "{{ github_release_symlinks }}"
   become: true
