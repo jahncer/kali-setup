@@ -30,7 +30,13 @@
       set -g history-limit 100000
       set -g allow-rename off
       set -g mouse on
+      set -g set-clipboard on
       set-window-option -g mode-keys vi
+
+      set -g @clipboard_copy_command 'if command -v xclip >/dev/null 2>&1 && [ -n "$DISPLAY" ]; then xclip -selection clipboard -in; elif command -v wl-copy >/dev/null 2>&1 && [ -n "$WAYLAND_DISPLAY" ]; then wl-copy; elif command -v pbcopy >/dev/null 2>&1; then pbcopy; else cat >/dev/null; fi'
+      bind-key -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "#{@clipboard_copy_command}"
+      bind-key -T copy-mode-vi Enter send-keys -X copy-pipe-and-cancel "#{@clipboard_copy_command}"
+      bind-key -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "#{@clipboard_copy_command}"
 
       bind-key j command-prompt -p "Join pane from:" "join-pane -s :'%%'"
       bind-key s command-prompt -p "Send pane to:" "join-pane -t :'%%'"
